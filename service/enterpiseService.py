@@ -12,7 +12,6 @@ class enterpiseService:
   def getListEnterprises(self, payload):
     self.headers.update({ "Content-Type": "application/json" })
     payloadReplaced = replacePayload(payload)
-    print(payloadReplaced)
 
     response = self.session.post("https://api.casadosdados.com.br/v2/public/cnpj/search", json=payloadReplaced)
     responseParsed = json.loads(response.text)
@@ -26,18 +25,39 @@ class enterpiseService:
     
     response = self.session.get(f"https://casadosdados.com.br/solucao/cnpj/{socialReasonFormated}")
     responseParsedHtml = html.fromstring(response.text)
-    lastUpdated = responseParsedHtml.xpath('//*[@id="__nuxt"]/div/section[4]/div[2]/div[1]/div/div[1]/p')[0].text_content()
-    mail = responseParsedHtml.xpath('//*[@id="__nuxt"]/div/section[4]/div[2]/div[1]/div/div[19]/p/a')[0].text_content().lower()
+    print(response.status_code)
+    lastUpdated = responseParsedHtml.xpath('//*[@id="__nuxt"]/div/section[4]/div[2]/div[1]/div/div[1]/p')
+    if lastUpdated: 
+      lastUpdated = lastUpdated[0].text_content()
+
+    mail = responseParsedHtml.xpath('//*[@id="__nuxt"]/div/section[4]/div[2]/div[1]/div/div[19]/p/a')
+    if mail:
+      mail = mail[0].text_content().lower()
     
+    typeM = responseParsedHtml.xpath('//*[@id="__nuxt"]/div/section[4]/div[2]/div[1]/div/div[7]/p')
+    if typeM: 
+      typeM = typeM[0].text_content().lower()
+
+    shareCapital = responseParsedHtml.xpath('//*[@id="__nuxt"]/div/section[4]/div[2]/div[1]/div/div[10]/p')
+    if shareCapital:
+      shareCapital = shareCapital[0].text_content().lower()
+      
     number = responseParsedHtml.xpath('//*[@id="__nuxt"]/div/section[4]/div[2]/div[1]/div/div[20]/p')
-    numberParsed = [element.text_content() for element in number]
     numberFormated = []
 
-    for _, text in enumerate(numberParsed, 1):
-      numberFormated.append(text.replace("Whatsapp", "").replace(" ", "").replace("\u00a0", ""))
+    if number:
+      numberParsed = [element.text_content() for element in number]
+
+      for _, text in enumerate(numberParsed, 1):
+        numberFormated.append(text.replace("Whatsapp", "").replace(" ", "").replace("\u00a0", ""))
 
     return json.dumps({ 
       "lastUpdated": lastUpdated, 
+      "informations": {
+        "type": typeM,
+        "shareCapital": shareCapital,
+        "address": {}
+      },
       "mail": mail,
       "number": numberFormated
     })
